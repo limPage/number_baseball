@@ -9,6 +9,8 @@
       "args": [
         "/Zi",
         "/Fe${fileDirname}\\NumberBaseball.exe",
+        "/DUNICODE", // 유니코드 정의
+        "/D_UNICODE",
         "${file}",
         "/link",
         "/SUBSYSTEM:WINDOWS",

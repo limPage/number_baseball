@@ -22,6 +22,7 @@ TCHAR answer[4];
 int tryCount = 0;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    SetThreadLocale(MAKELCID(MAKELANGID(LANG_KOREAN, SUBLANG_KOREAN), SORT_DEFAULT));
     srand((unsigned)time(0));
     GenerateAnswer(answer);
 
@@ -91,7 +92,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
         // Windows 95 스타일 폰트 설정
         HFONT hFont = CreateFont(14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
-            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FIXED_PITCH, _T("MS Sans Serif"));
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FIXED_PITCH, _T("Malgun Gothic"));
         SendMessage(hEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
         SendMessage(hButton, WM_SETFONT, (WPARAM)hFont, TRUE);
         SendMessage(hResult, WM_SETFONT, (WPARAM)hFont, TRUE);
