@@ -10,9 +10,10 @@
 #define ID_RESULT 1003
 #define ID_STATUS 1004
 #define ID_IMAGE 1005
+#define ID_RESET 1006
 // #define IDI_ICON1 1006
 // #define IDB_BASEBALL 1007
-
+WNDPROC oldEditProc;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void GenerateAnswer(TCHAR[]);
@@ -20,6 +21,13 @@ void CheckGuess(HWND, const TCHAR[], TCHAR[]);
 
 TCHAR answer[4];
 int tryCount = 0;
+LRESULT CALLBACK EditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    if (msg == WM_KEYDOWN && wParam == VK_RETURN) {
+        SendMessage(GetParent(hwnd), WM_COMMAND, ID_BUTTON, 0);
+        return 0;
+    }
+    return CallWindowProc(oldEditProc, hwnd, msg, wParam, lParam);
+}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     SetThreadLocale(MAKELCID(MAKELANGID(LANG_KOREAN, SUBLANG_KOREAN), SORT_DEFAULT));
@@ -66,17 +74,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    static HWND hEdit, hButton, hResult, hStatus, hImage;
+    static HWND hEdit, hButton, hResult, hStatus, hImage, hButton2;
 
     switch (msg) {
     case WM_CREATE: {
         // 입력창
         hEdit = CreateWindow(_T("EDIT"), _T(""), WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER,
-            20, 20, 140, 20, hwnd, (HMENU)ID_EDIT, NULL, NULL);
+            20, 20, 110, 20, hwnd, (HMENU)ID_EDIT, NULL, NULL);
 
         // 확인 버튼
         hButton = CreateWindow(_T("BUTTON"), _T("확인"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            170, 20, 60, 20, hwnd, (HMENU)ID_BUTTON, NULL, NULL);
+            140, 20, 40, 20, hwnd, (HMENU)ID_BUTTON, NULL, NULL);
+
+        // 리셋 버튼
+        hButton2= CreateWindow(_T("BUTTON"), _T("리셋"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            190, 20, 40, 20, hwnd, (HMENU)ID_RESET, NULL, NULL);
 
         // 결과 표시 영역 (ListBox)
         hResult = CreateWindow(_T("LISTBOX"), _T(""), WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER,
@@ -97,6 +109,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         SendMessage(hButton, WM_SETFONT, (WPARAM)hFont, TRUE);
         SendMessage(hResult, WM_SETFONT, (WPARAM)hFont, TRUE);
         SendMessage(hStatus, WM_SETFONT, (WPARAM)hFont, TRUE);
+        SendMessage(hButton2, WM_SETFONT, (WPARAM)hFont, TRUE);
+
+        oldEditProc = (WNDPROC)SetWindowLongPtr(hEdit, GWLP_WNDPROC, (LONG_PTR)EditProc);
 
         // 비트맵 로드 및 설정
         HBITMAP hBitmap = (HBITMAP)LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_BASEBALL), IMAGE_BITMAP, 100, 20, 0);
@@ -124,14 +139,33 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             GetWindowText(hEdit, guess, 4);
             CheckGuess(hwnd, guess, answer);
         }
+        else if (LOWORD(wParam) == ID_RESET) {
+            // 시도횟수 초기화
+            tryCount = 0;
+            SetWindowText(hStatus, _T("시도 횟수: 0"));
+
+            // 리스트박스 초기화
+            SendMessage(hResult, LB_RESETCONTENT, 0, 0);
+
+            // 입력칸 초기화
+            SetWindowText(hEdit, _T(""));
+            EnableWindow(hEdit, TRUE);
+            EnableWindow(GetDlgItem(hwnd, ID_BUTTON), TRUE);
+
+            // 정답 새로 생성
+            GenerateAnswer(answer);
+        } 
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+
     default:
         return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     return 0;
+
+    
 }
 
 void GenerateAnswer(TCHAR answer[]) {
@@ -155,6 +189,8 @@ void CheckGuess(HWND hwnd, const TCHAR guess[], TCHAR answer[]) {
     if (_tcslen(guess) != 3 || !_istdigit(guess[0]) || !_istdigit(guess[1]) || !_istdigit(guess[2]) ||
         guess[0] == guess[1] || guess[1] == guess[2] || guess[0] == guess[2]) {
         SendMessage(hResult, LB_ADDSTRING, 0, (LPARAM)_T("유효한 3자리 숫자를 입력!!(중복x)"));
+        int count = (int)SendMessage(hResult, LB_GETCOUNT, 0, 0);
+        SendMessage(hResult, LB_SETTOPINDEX, count - 1, 0);
         return;
     }
 
@@ -184,6 +220,8 @@ void CheckGuess(HWND hwnd, const TCHAR guess[], TCHAR answer[]) {
         EnableWindow(hEdit, FALSE);
         EnableWindow(hButton, FALSE);
     }
+    int count = (int)SendMessage(hResult, LB_GETCOUNT, 0, 0);
+    SendMessage(hResult, LB_SETTOPINDEX, count - 1, 0);
 
     SetWindowText(hEdit, _T(""));
 }
